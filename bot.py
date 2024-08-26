@@ -54,7 +54,7 @@ def message_handler(message: types.Message):
             user_id,
             "Погоди, барный четверг либо уже закончился, либо будет чуть позже =(",
         )
-    if message.text == code_word:
+    elif message.text == code_word:
         save_users_visit(user_id)
         bot.send_message(user_id, "Пометил карандашиком присутствие!")
     else:
