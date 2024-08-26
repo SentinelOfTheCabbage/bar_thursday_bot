@@ -56,7 +56,7 @@ def message_handler(message: types.Message):
         )
     elif message.text == code_word:
         save_users_visit(user_id)
-        bot.send_message(user_id, "Пометил карандашиком присутствие!")
+        bot.send_message(user_id, "Пометил присутствие!")
     else:
         bot.send_message(user_id, "Пометил карандашиком хулигана =)")
 
@@ -70,3 +70,4 @@ if __name__ == "__main__":
             "https://neildub.pythonanywhere.com/{}".format(SECRET), max_connections=1
         )
         make_flask_handler(bot)
+        app.run()
