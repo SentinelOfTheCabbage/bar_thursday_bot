@@ -1,0 +1,20 @@
+import os
+from enum import Enum
+
+
+class WorkingMode(Enum):
+    POLLING = "POLLING"
+    WEB_HOOK = "WEB_HOOK"
+
+
+ENV_API_TOKEN_KEY = "TELEGRAM_API_KEY"
+ENV_MODE_KEY = "WORK_MODE"
+ENV_ENCRYPT_TOKEN_KEY = "ENCRYPT_KEY"
+ENV_MASTER_ADMIN_ID_KEY = "ADMIN_ID"
+ENV_SECRET_KEY = "SECRET"
+
+TOKEN = os.getenv(ENV_API_TOKEN_KEY)
+MODE = WorkingMode(os.getenv(ENV_MODE_KEY))
+ENCRYPT_KEY = os.getenv(ENV_ENCRYPT_TOKEN_KEY)
+MASTER_ADMIN_ID = int(os.getenv(ENV_MASTER_ADMIN_ID_KEY))
+SECRET = os.getenv(ENV_SECRET_KEY)

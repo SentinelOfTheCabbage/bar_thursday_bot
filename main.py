@@ -1,77 +1,72 @@
-import os
-from enum import Enum
-import hashlib
-from datetime import datetime
-
 from telebot import TeleBot, types
-import qrcode
+
+from src import *
+from src.service import make_flask_handler
+
+bot = TeleBot(TOKEN, threaded=False)
+words = None
 
 
-class WorkingMode(Enum):
-    POLLING = "POLLING"
-    WEB_HOOK = "WEB_HOOK"
+@bot.message_handler(commands=["word"], func=is_admin)
+def get_word(message: types.Message):
+    response_pattern = (
+        "<i>Кодовое слово:</i>\n<blockquote><b>{code_word}</b></blockquote>"
+    )
+    response = response_pattern.format(code_word=get_code_word())
+    bot.send_message(message.from_user.id, response, parse_mode="html")
 
 
-ENV_API_TOKEN_KEY = "TELEGRAM_API_KEY"
-ENV_MODE_KEY = "WORK_MODE"
-ENV_ENCRYPT_TOKEN_KEY = "ENCRYPT_KEY"
-
-TOKEN = os.getenv(ENV_API_TOKEN_KEY)
-# MODE = WorkingMode(os.getenv(ENV_MODE_KEY))
-ENCRYPT_KEY = os.getenv(ENV_ENCRYPT_TOKEN_KEY)
-
-bot = TeleBot(TOKEN)
-bot.get_my_name()
-
-
-def is_thursday():
-    return datetime.now().weekday() == 3
-
-
-def generate_secret(key, message):
-    return hashlib.sha256(f"{message}_{key}".encode()).hexdigest()
-
-
-@bot.message_handler(commands=["start"])
-def start_handler(message: types.Message):
-    if not is_thursday():
-        return
-    elif message.text != f"/start {generate_secret()}":
-        return
-    # TODO: update presence
-    pass
-
-
-def generate_qrcode(key: str = ENCRYPT_KEY, message: str = datetime.now().isoformat()):
-    secret = generate_secret(key, message)
-
-    link_pattern = "https://t.me/{bot_username}?start={secret}"
-    link = link_pattern.format(bot_username=bot.get_me().username, secret=secret)
-
-    filename = "file.png"
-    img = qrcode.make(link)
-    img.save(filename)
-
-    return filename
-
-
-def send_image(user_id, qrcode_filename):
-    bot.send_chat_action(user_id, "upload_photo")
-    with open(qrcode_filename, "rb") as image:
-        bot.send_photo(user_id, image)
-
-
-@bot.message_handler(commands=["qrcode"])
-def handle_qrcode(message: types.Message):
+@bot.message_handler(commands=["promote"], func=is_admin)
+def promote_admin(message: types.Message):
     user_id = message.from_user.id
+    target_id = message.text[8:].strip()
+    if len(target_id) == 0:
+        bot.send_message(user_id, "Вы забыли указать user_id в запросе")
+    elif target_id.isdecimal():
+        add_admin(int(target_id))
+        bot.send_message(user_id, f"Юзер {target_id} успешно добавлен в админы")
+    else:
+        bot.send_message(user_id, f"Не существует юзера с таким id")
 
-    if datetime.now().weekday() != 3:
-        bot.send_message(user_id, "It's not thursday, my dude =(")
-        return
 
-    qrcode_filename = generate_qrcode()
-    send_image(user_id, qrcode_filename)
+@bot.message_handler(commands=["promote"], func=lambda m: not is_admin(m))
+def promote_user(message: types.Message):
+    user_id = message.from_user.id
+    notification = (
+        f"Юзер @{message.from_user.username} хочет получить админ-права."
+        "Для выдачи прав введите:\n"
+        f"/promote {user_id}"
+    )
+    response = "Админ получил запрос на выдачу прав"
+    bot.send_message(MASTER_ADMIN_ID, notification)
+    bot.send_message(user_id, response)
+
+
+@bot.message_handler(
+    func=lambda message: message.chat.id == message.from_user.id,
+)
+def message_handler(message: types.Message):
+    user_id = message.from_user.id
+    code_word = get_code_word()
+
+    if not is_bar_thursday():
+        bot.send_message(
+            user_id,
+            "Погоди, барный четверг либо уже закончился, либо будет чуть позже =(",
+        )
+    if message.text == code_word:
+        save_users_visit(user_id)
+        bot.send_message(user_id, "Пометил карандашиком присутствие!")
+    else:
+        bot.send_message(user_id, "Пометил карандашиком хулигана =)")
 
 
 if __name__ == "__main__":
-    bot.polling()
+    if MODE == WorkingMode.POLLING:
+        bot.polling()
+    elif MODE == WorkingMode.WEB_HOOK:
+        secret = "wabalabadabdab"
+        bot.set_webhook(
+            "https://neildub.pythonanywhere.com/{}".format(SECRET), max_connections=1
+        )
+        make_flask_handler(bot)
