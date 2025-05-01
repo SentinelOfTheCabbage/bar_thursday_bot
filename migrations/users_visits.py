@@ -11,7 +11,7 @@ def m01_create_users_table(db):
         {
             "user_id": int,
             "last_visit": datetime,
-            "counter": int ,
+            "counter": int,
         },
         pk="user_id",
     )

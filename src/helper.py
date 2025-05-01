@@ -1,26 +1,22 @@
 from datetime import datetime, timedelta, timezone
 
-def get_modified_time():
-    # I think best time for Bar4etverg is between next two times:
-    # - 18:00+0300 (thursday) -> 06:00+0300 (friday)
-    # Let's fix-move hours to -18h: 00:00 -> 12:00 (both thursday)
+
+def get_current_time() -> datetime:
     tz_info = timezone(timedelta(hours=3))
-    fix_timedelta = timedelta(hours=18)
-
-    return datetime.now(tz_info) - fix_timedelta
+    return datetime.now(tz_info)
 
 
-def get_day_isoformat():
-    modified_datetime = get_modified_time()
-    return modified_datetime.strftime("%Y-%m-%d")
+def get_current_weekday():
+    return get_current_time().weekday()
+
+
+def get_current_hour():
+    return get_current_time().hour
 
 
 def is_bar_thursday():
-    modified_datetime = get_modified_time()
-    is_bar_time = modified_datetime.hour < 12
-
-    thursday = 3
-    tz_info = timezone(timedelta(hours=3))
-    is_thursday = datetime.now(tz_info).weekday == thursday
-
-    return is_thursday and is_bar_time
+    weekday = get_current_weekday()
+    hour = get_current_hour()
+    is_thursday = (weekday == 3) and (hour > 18)
+    is_friday_beginning = (weekday == 4) and (hour < 3)
+    return is_thursday or is_friday_beginning

@@ -4,6 +4,7 @@ from src.consts import SECRET
 
 app = Flask(__name__)
 
+
 def make_flask_handler(bot: TeleBot):
     @app.route("/{}".format(SECRET), methods=["POST"])
     def telegram_webhook():
